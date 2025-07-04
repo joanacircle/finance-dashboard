@@ -1,9 +1,11 @@
-import Image from 'next/image'
+import React from 'react';
+import { Box } from '@mui/material';
+import SearchBar from '../components/SearchBar';
 
 export default function Home() {
   return (
-    <div>
-      <h1>Finance Dashboard</h1>
-    </div>
-  )
+    <Box sx={{ bgcolor: '#fff', minHeight: '100vh' }}>
+      <SearchBar />
+    </Box>
+  );
 }
