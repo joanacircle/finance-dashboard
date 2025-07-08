@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo } from 'react';
 import axios from 'axios';
-import { Box, Card, CardContent, Typography, Table as MuiTable, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Box, Card, CardContent, Typography, Table as MuiTable, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Skeleton } from '@mui/material';
 import type { MonthlyRevenueRecord } from '../types/finance';
 
 type RevenueRow = {
@@ -10,8 +10,11 @@ type RevenueRow = {
   revenue: number;
   yoy: string;
 };
+interface TableProps {
+  stockId: string;
+}
 
-const Table: React.FC = () => {
+const Table: React.FC<TableProps> = ({ stockId }) => {
   const [tableRows, setTableRows] = useState<RevenueRow[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +28,7 @@ const Table: React.FC = () => {
       .get('https://api.finmindtrade.com/api/v4/data?', {
         params: {
           dataset: 'TaiwanStockMonthRevenue',
-          data_id: '2330',
+          data_id: stockId,
           start_date: `${startYear}-01-01`,
           end_date: `${endYear}-12-31`,
         },
@@ -81,7 +84,47 @@ const Table: React.FC = () => {
   const yoyRates = useMemo(() => tableRows.map((row) => row.yoy), [tableRows]);
 
   if (loading) {
-    return <Typography>載入中...</Typography>;
+    return (
+      <Box sx={{ mt: 3 }}>
+        <Card>
+          <CardContent>
+            <Typography variant="subtitle1" gutterBottom>
+              <Skeleton width={80} />
+            </Typography>
+            <TableContainer component={Paper}>
+              <MuiTable>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>
+                      <Skeleton width={60} />
+                    </TableCell>
+                    {[...Array(6)].map((_, idx) => (
+                      <TableCell key={idx}>
+                        <Skeleton width={60} />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {[...Array(2)].map((_, rowIdx) => (
+                    <TableRow key={rowIdx}>
+                      <TableCell>
+                        <Skeleton width={80} />
+                      </TableCell>
+                      {[...Array(6)].map((_, colIdx) => (
+                        <TableCell key={colIdx}>
+                          <Skeleton width={60} />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </MuiTable>
+            </TableContainer>
+          </CardContent>
+        </Card>
+      </Box>
+    );
   }
   if (error) {
     return <Typography color="error">{error}</Typography>;
