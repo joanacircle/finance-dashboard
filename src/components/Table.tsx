@@ -1,87 +1,24 @@
-'use client';
-
-import { useEffect, useState, useRef, useMemo } from 'react';
-import axios from 'axios';
+import { useEffect, useRef } from 'react';
 import { Box, Card, CardContent, Typography, Table as MuiTable, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Skeleton } from '@mui/material';
-import type { MonthlyRevenueRecord } from '../types/finance';
+import type { ChartData } from '../types/finance';
 
-type RevenueRow = {
-  month: string;
-  revenue: number;
-  yoy: string;
-};
 interface TableProps {
-  stockId: string;
+  data: ChartData[];
+  loading: boolean;
 }
 
-const Table: React.FC<TableProps> = ({ stockId }) => {
-  const [tableRows, setTableRows] = useState<RevenueRow[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const endYear = new Date().getFullYear();
-  const startYear = endYear - 3;
+const Table: React.FC<TableProps> = ({ data, loading }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    axios
-      .get('https://api.finmindtrade.com/api/v4/data?', {
-        params: {
-          dataset: 'TaiwanStockMonthRevenue',
-          data_id: stockId,
-          start_date: `${startYear}-01-01`,
-          end_date: `${endYear}-12-31`,
-        },
-        headers: {
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_API_KEY}`,
-        },
-      })
-      .then((res) => {
-        const data = res.data.data;
-        const lastTwoYearsData = data.filter(
-          (v: MonthlyRevenueRecord) => v.revenue_year <= endYear && v.revenue_year > endYear - 2
-        );
-        const dataMap = new Map<string, MonthlyRevenueRecord>();
-        data.forEach((item: MonthlyRevenueRecord) => {
-            const key = `${item.revenue_year}-${item.revenue_month}`;
-            dataMap.set(key, item);
-        })
-
-
-        setTableRows(
-            lastTwoYearsData.map((item: MonthlyRevenueRecord) => {
-            const lastYearKey = `${item.revenue_year - 1}-${item.revenue_month}`;
-            const lastYear = dataMap.get(lastYearKey);
-            return {
-              month: `${item.revenue_year}${String(item.revenue_month).padStart(2,'0')}`,
-              revenue: item.revenue,
-              yoy: lastYear
-                ? (((item.revenue / lastYear.revenue - 1) * 100).toFixed(2))
-                : '',
-            };
-          })
-        );
-        setError(null);
-      })
-      .catch((err) => {
-        setError('資料獲取失敗');
-      })
-      .finally(() => setLoading(false));
-  }, [startYear, endYear]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
     }
-  }, [tableRows]);
+  }, [data]);
 
-  // Memoize derived arrays
-  const months = useMemo(() => tableRows.map((row) => row.month), [tableRows]);
-  const revenues = useMemo(
-    () => tableRows.map((row) => row.revenue),
-    [tableRows]
-  );
-  const yoyRates = useMemo(() => tableRows.map((row) => row.yoy), [tableRows]);
+  const months = data.map((row) => row.month);
+  const revenues = data.map((row) => row.revenue);
+  const yoyRates = data.map((row) => row.yoy);
 
   if (loading) {
     return (
@@ -125,9 +62,6 @@ const Table: React.FC<TableProps> = ({ stockId }) => {
         </Card>
       </Box>
     );
-  }
-  if (error) {
-    return <Typography color="error">{error}</Typography>;
   }
 
   return (
@@ -198,7 +132,7 @@ const Table: React.FC<TableProps> = ({ stockId }) => {
                       key={idx}
                       sx={{ textAlign: 'end', border: '1px solid #e0e0e0' }}
                     >
-                      {yoy !== '' ? Number(yoy).toLocaleString() : ''}
+                      {yoy ? Number(yoy).toLocaleString() : ''}
                     </TableCell>
                   ))}
                 </TableRow>
